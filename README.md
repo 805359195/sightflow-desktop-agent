@@ -3,12 +3,6 @@
 
 Official website： [https://sightflow.dev](https://sightflow.dev/)
 
-
-# 招募共建开发者
-我们相信 Agent Computer Use 会是未来 10 年重要 AI 革命的基建，如果你也希望参与到这个项目迭代，欢迎联系\
-
-[加入 Discord](https://discord.com/invite/8H6KpbXq3t)
-
 ## AI 模型配置 (API Key / 多厂商)
 
 本项目的对话与**布局测量 (VLM)** 均通过 OpenAI 兼容的 **`/chat/completions`（或厂商等价）HTTP 接口** 调用大模型。请为每个模型提供 **API Key、模型名、Base URL**；三者须属**同一厂商/同一套凭证**，否则会出现 **401 / API key format is incorrect** 等鉴权错误。
