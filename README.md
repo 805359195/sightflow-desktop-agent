@@ -1,7 +1,4 @@
-# SightFlow.dev
-<img width="1201" height="495" alt="image" src="https://github.com/user-attachments/assets/99a7cfec-eb22-4f65-8a76-a6974e46bcf0" />
-
-Official website： [https://sightflow.dev](https://sightflow.dev/)
+# 项目在大佬 https://sightflow.dev/ 基础下做的修改。
 
 ## AI 模型配置 (API Key / 多厂商)
 
@@ -15,9 +12,9 @@ Official website： [https://sightflow.dev](https://sightflow.dev/)
 
 ### 火山引擎 (Volcengine) 示例
 
-1. 前往 [火山引擎控制台 - 方舟](https://console.volcengine.com/ark) 开通并创建 API Key。
-2. 在应用**设置**中配置 Key、模型 ID 与 **完整**的 chat 端点（若与内置默认不同则必填）。
-3. 将 **使用** 切到要用的那条模型，再**测试**与启动引擎。
+
+1. 在应用**设置**中配置 Key、模型 ID 与 **完整**的 chat 端点（若与内置默认不同则必填）。
+2. 将 **使用** 切到要用的那条模型，再**测试**与启动引擎。
 
 ### 其他厂商 (如 Moonshot、OpenAI 等)
 
