@@ -4,7 +4,7 @@
 // 串联 screenshot-utils、input-utils、has-unread、vision-utils
 // 所有感知和动作能力在这里汇聚
 
-import { DesktopDevice } from './device'
+import { DesktopDevice, type DeviceAIConfig } from './device'
 import { AIClient } from './ai-client'
 import { AppType } from './rpa/types'
 import { BBox } from './rpa/vision-utils'
@@ -31,14 +31,25 @@ import { getWechatWindowInfo } from './rpa/window-utils'
 export class RPADevice implements DesktopDevice {
   private appType: AppType = 'weixin'
   private aiClient: AIClient | null = null
+  private aiSnapshot: Partial<DeviceAIConfig> = {}
 
   setAppType(appType: AppType): void {
     this.appType = appType
   }
 
-  setApiKey(apiKey: string): void {
-    if (!apiKey) return
-    this.aiClient = new AIClient({ apiKey })
+  setAIConfig(config: Partial<DeviceAIConfig> & { apiKey?: string }): void {
+    this.aiSnapshot = { ...this.aiSnapshot, ...config }
+    const k = (this.aiSnapshot.apiKey || '').trim()
+    if (!k) {
+      this.aiClient = null
+      return
+    }
+    this.aiClient = new AIClient({
+      apiKey: k,
+      model: this.aiSnapshot.model,
+      baseURL: this.aiSnapshot.baseURL,
+      systemPrompt: this.aiSnapshot.systemPrompt
+    })
   }
 
   // ── 感知层 ──

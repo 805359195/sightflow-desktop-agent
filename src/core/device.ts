@@ -8,10 +8,19 @@
 import { AppType } from './rpa/types'
 import { BBox } from './rpa/vision-utils'
 
+/** 与 LocalHooks / buildEngineConfig 一致，供 VLM 布局测量等请求使用 */
+export type DeviceAIConfig = {
+  apiKey: string
+  model?: string
+  baseURL?: string
+  systemPrompt?: string
+}
+
 export interface DesktopDevice {
   // ── 配置 ──
   setAppType(appType: AppType): void
-  setApiKey(apiKey: string): void
+  /** 传入完整 apiKey + model + baseURL，避免只带 key 时回落到默认火山地址导致第三方 Key 401 */
+  setAIConfig(config: Partial<DeviceAIConfig> & { apiKey?: string }): void
 
   // ── 感知层 ──
 

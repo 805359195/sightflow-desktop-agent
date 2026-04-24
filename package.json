@@ -38,6 +38,9 @@
     "pixelmatch": "^7.1.0",
     "pngjs": "^7.0.0"
   },
+  "overrides": {
+    "node-addon-api": "^8.1.0"
+  },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/eslint-config-ts": "^3.1.0",

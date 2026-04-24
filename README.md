@@ -5,25 +5,32 @@ Official website： [https://sightflow.dev](https://sightflow.dev/)
 
 
 # 招募共建开发者
-我们相信Agent Computer Use 会是未来10年重要AI革命的基建，如果你也希望参与到这个项目迭代，欢迎联系\
+我们相信 Agent Computer Use 会是未来 10 年重要 AI 革命的基建，如果你也希望参与到这个项目迭代，欢迎联系\
 
-[加入Discord](https://discord.com/invite/8H6KpbXq3t)
+[加入 Discord](https://discord.com/invite/8H6KpbXq3t)
 
-## 🔑 AI 模型配置 (API Key / SK Key)
+## AI 模型配置 (API Key / 多厂商)
 
-本项目依赖大语言模型/视觉模型（Vision Language Model）驱动 RPA。
-目前默认内置使用了**火山引擎 (Volcengine)** 的大模型服务。
+本项目的对话与**布局测量 (VLM)** 均通过 OpenAI 兼容的 **`/chat/completions`（或厂商等价）HTTP 接口** 调用大模型。请为每个模型提供 **API Key、模型名、Base URL**；三者须属**同一厂商/同一套凭证**，否则会出现 **401 / API key format is incorrect** 等鉴权错误。
 
-### SK Key 的用途
-1. **智能对话回复**：由于项目涉及类似微信等的自动抓取，模型会分析聊天界面的截图并生成自然的回复内容（带防止自我循环对话机制）。
-2. **VLM 视觉定位引导**：基于屏幕截图和特定 Prompt，让模型自动检测屏幕上的 UI 控件，并返回需要点击的坐标，从而驱动纯视觉的 RPA 流程。
+| 项目 | 说明 |
+| --- | --- |
+| **Base URL** | 填写**可发起 POST 的完整接口地址**（通常以 `/chat/completions` 等结尾，视厂商文档为准）。**留空**时，主进程会采用内置默认（如火山引擎方舟的默认 chat 端点，具体以 `src/core/ai-client.ts` 中 `DEFAULT_CHAT_URL` 为准）。 |
+| **模型列表** | 设置中可维护**多条**模型：添加/编辑/删除、**使用**为当前用于引擎的模型、**测试**为针对该条单独做连通性检查。 |
+| **引擎与 VLM** | 启动引擎前会做**一次性布局测量**（对微信等窗口截屏后调用 VLM 定位 UI 区域）。该请求与聊天回复、测试连接**共用当前选中模型的 Key / Model / Base URL**；仅 Key 而 URL 与厂商不一致时，容易在**布局阶段**就失败。 |
 
-### 如何配置
-1. 请前往 [火山引擎控制台 - 方舟原生接口](https://console.volcengine.com/ark) 开通相关服务（如 doubao-seed-2-0-lite），并生成/获取你的 API Key。
-2. 在项目启动后，点击页面上的**设置 (Settings)** 选项。
-3. 将你的 API Key 填入配置中，即可开始测试对应 AI 功能及自动回复了（默认的 Base URL 为 `https://ark.cn-beijing.volces.com/api/v3` 可以直接使用不变）。
+### 火山引擎 (Volcengine) 示例
 
-## 🚀 快速开始 (Project Setup)
+1. 前往 [火山引擎控制台 - 方舟](https://console.volcengine.com/ark) 开通并创建 API Key。
+2. 在应用**设置**中配置 Key、模型 ID 与 **完整**的 chat 端点（若与内置默认不同则必填）。
+3. 将 **使用** 切到要用的那条模型，再**测试**与启动引擎。
+
+### 其他厂商 (如 Moonshot、OpenAI 等)
+
+- 在厂商文档中复制 **与 Key 配套** 的 `POST` 地址与 `model` 名，**整体粘贴**到 Base URL 与模型字段。  
+- 不要混用 A 家 Key 与 B 家 URL。
+
+## 快速开始 (Project Setup)
 
 ### 1. 安装依赖
 
@@ -36,9 +43,10 @@ npm install
 ```bash
 npm run dev
 ```
-> **提示**：启动后，应用将打开主界面。请记得先去设置填入 skkey 再进行后续测试。
 
-## 📦 打包构建 (Build)
+> **提示**：启动后请先在**设置**中完成模型配置并**测试**通过，再启动引擎；并确保**微信 / 企业微信**窗口可访问（未最小化/遮挡过多），否则布局测量可能失败。
+
+## 打包构建 (Build)
 
 ```bash
 # 构建 Windows 版本
@@ -52,4 +60,3 @@ npm run build:mac
 ## 开发环境推荐配置
 
 - [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-

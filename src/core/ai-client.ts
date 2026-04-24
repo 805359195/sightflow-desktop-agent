@@ -14,7 +14,8 @@ export interface AIClientConfig {
 }
 
 const DEFAULT_MODEL = 'doubao-seed-2-0-lite-260215'
-const DEFAULT_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3'
+/** 未配置时仅作内置默认；有配置时以用户填写的完整 URL 为准，不再自动拼接路径 */
+const DEFAULT_CHAT_URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
 
 const REPLY_SYSTEM_PROMPT = `你是一个微信自动回复助手。你会收到一张微信/企业微信的聊天窗口截图。
 
@@ -35,7 +36,7 @@ export class AIClient {
     this.config = {
       apiKey: config.apiKey,
       model: config.model || DEFAULT_MODEL,
-      baseURL: config.baseURL || DEFAULT_BASE_URL,
+      baseURL: (config.baseURL && String(config.baseURL).trim()) || DEFAULT_CHAT_URL,
       systemPrompt: config.systemPrompt || REPLY_SYSTEM_PROMPT
     }
   }
@@ -97,8 +98,9 @@ export class AIClient {
     try {
       await this.callText('你好，请回复"连接成功"。')
       return { success: true }
-    } catch (error: any) {
-      return { success: false, error: error?.message || String(error) }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      return { success: false, error: msg }
     }
   }
 
@@ -145,7 +147,8 @@ export class AIClient {
    * 在非火山供应商上会被忽略，放在这里不影响兼容性
    */
   private async callAPI(messages: any[]): Promise<any> {
-    const url = `${this.config.baseURL}/chat/completions`
+    const raw = (this.config.baseURL || '').trim().replace(/\/+$/, '')
+    const url = raw || DEFAULT_CHAT_URL
     const TIMEOUT_MS = 30_000 // 30 秒超时
     const callStart = Date.now()
 
@@ -176,15 +179,26 @@ export class AIClient {
       })
 
       const fetchElapsed = ((Date.now() - callStart) / 1000).toFixed(1)
-      console.log(`[AIClient] 收到响应 status=${response.status} (${fetchElapsed}s)`)
+      console.log(`[AIClient] 收到响应 status=${response.status} (${fetchElapsed}s) url=${url}`)
+
+      const text = await response.text()
 
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error(`[AIClient] API 错误: ${response.status}`, errorText)
-        throw new Error(`API request failed: ${response.status} - ${errorText.slice(0, 200)}`)
+        console.error(`[AIClient] API 错误: ${response.status}`, text.slice(0, 500))
+        throw new Error('')
       }
 
-      const json = await response.json()
+      let json: any
+      try {
+        json = JSON.parse(text) as any
+      } catch {
+        const head = text.slice(0, 160).replace(/\s+/g, ' ')
+        console.error(
+          `[AIClient] 响应不是 JSON status=${response.status} url=${url} body≈ ${head}`
+        )
+        throw new Error('')
+      }
+
       const totalElapsed = ((Date.now() - callStart) / 1000).toFixed(1)
       console.log(`[AIClient] 解析完成 (${totalElapsed}s)`)
       return json
@@ -194,7 +208,9 @@ export class AIClient {
         console.error(`[AIClient] ⏱ 超时！已等待 ${elapsed}s，上限 ${TIMEOUT_MS / 1000}s`)
         throw new Error(`AI API 请求超时 (${TIMEOUT_MS / 1000}s)`)
       }
-      console.error(`[AIClient] 请求异常 (${elapsed}s):`, error?.message)
+      const msg = error instanceof Error ? error.message : String(error)
+      if (msg) console.error(`[AIClient] 请求异常 (${elapsed}s):`, msg)
+      else console.error(`[AIClient] 请求失败 (${elapsed}s)，见上一条 [AIClient] 日志`)
       throw error
     } finally {
       clearTimeout(timer)

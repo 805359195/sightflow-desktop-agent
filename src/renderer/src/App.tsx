@@ -1,6 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { t } from './i18n'
 import logoUrl from './assets/logo.png'
+import { SettingsView, registerSettingsToast } from './settings/SettingsView'
+import { buildEngineConfig } from './settings/buildEngineConfig'
+import { applyUiTheme, type UiThemeSetting, watchSystemTheme } from './theme/applyUiTheme'
 import './index.css'
 
 // ─── Types ───
@@ -44,6 +47,20 @@ function App() {
   const [view, setView] = useState<View>('control')
   const [status, setStatus] = useState<EngineStatus>('idle')
 
+  useEffect(() => {
+    const sync = () => {
+      void window.electron?.invoke('settings:getAll').then((s: { uiTheme?: UiThemeSetting } | null) => {
+        applyUiTheme(s?.uiTheme || 'dark')
+      })
+    }
+    sync()
+    return watchSystemTheme(sync)
+  }, [])
+
+  useEffect(() => {
+    void window.electron?.invoke('win:setViewLayout', view)
+  }, [view])
+
   return (
     <div className="app">
       <header className="app-header">
@@ -63,7 +80,7 @@ function App() {
         {view === 'control' ? (
           <ControlPanel status={status} setStatus={setStatus} />
         ) : (
-          <SettingsPanel />
+          <SettingsView />
         )}
       </div>
 
@@ -160,19 +177,10 @@ function BottomBar({
   onSettings: () => void
 }) {
   const handleStart = useCallback(async () => {
-    const settings = await window.electron?.invoke('settings:getAll')
-    const apiKey = settings?.apiKey || ''
-    if (!apiKey) {
+    const config = await buildEngineConfig()
+    if (!config.apiKey) {
       showToast(t('control.start.nokey'), 'error')
       return
-    }
-
-    const config = {
-      apiKey,
-      model: settings?.model || undefined,
-      baseURL: settings?.baseURL || undefined,
-      systemPrompt: settings?.systemPrompt || undefined,
-      appType: settings?.appType || 'weixin'
     }
 
     const result = await window.electron?.invoke('engine:start', config)
@@ -213,149 +221,6 @@ function BottomBar({
   )
 }
 
-// ─── Settings Panel ───
-function SettingsPanel() {
-  const [apiKey, setApiKey] = useState('')
-  const [model, setModel] = useState('doubao-seed-2-0-lite-260215')
-  const [baseURL, setBaseURL] = useState('')
-  const [systemPrompt, setSystemPrompt] = useState('')
-  const [appType, setAppType] = useState<'weixin' | 'wework'>('weixin')
-  const [testing, setTesting] = useState(false)
-  const [, setLoaded] = useState(false)
-
-  useEffect(() => {
-    window.electron?.invoke('settings:getAll').then((settings: any) => {
-      if (settings) {
-        setApiKey(settings.apiKey || '')
-        setModel('doubao-seed-2-0-lite-260215')
-        setBaseURL(settings.baseURL || '')
-        setSystemPrompt(settings.systemPrompt || '')
-        setAppType(settings.appType || 'weixin')
-      }
-      setLoaded(true)
-    })
-  }, [])
-
-  const handleSave = useCallback(async () => {
-    await window.electron?.invoke('settings:set', {
-      apiKey,
-      model,
-      baseURL,
-      systemPrompt,
-      appType
-    })
-
-    window.electron?.invoke('engine:updateConfig', {
-      apiKey: apiKey || undefined,
-      model: model || undefined,
-      baseURL: baseURL || undefined,
-      systemPrompt: systemPrompt || undefined,
-      appType
-    })
-
-    showToast(t('settings.saved'), 'success')
-  }, [apiKey, model, baseURL, systemPrompt, appType])
-
-  const handleTestConnection = useCallback(async () => {
-    if (!apiKey) return
-    setTesting(true)
-    try {
-      const result = await window.electron?.invoke('engine:testConnection', {
-        apiKey,
-        model: model || undefined,
-        baseURL: baseURL || undefined
-      })
-      if (result?.success) {
-        showToast(t('settings.testConnection.success'), 'success')
-      } else {
-        showToast(`${t('settings.testConnection.fail')}: ${result?.error || ''}`, 'error')
-      }
-    } catch (e: any) {
-      showToast(`${t('settings.testConnection.fail')}: ${e.message}`, 'error')
-    } finally {
-      setTesting(false)
-    }
-  }, [apiKey, model, baseURL])
-
-  return (
-    <div className="slide-up">
-      <div className="card">
-        <div className="card-title">{t('settings.ai')}</div>
-
-        <div className="form-group">
-          <label className="form-label">应用类型</label>
-          <select
-            className="form-input"
-            value={appType}
-            onChange={(e) => setAppType(e.target.value as any)}
-          >
-            <option value="weixin">微信</option>
-            <option value="wework">企业微信</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">{t('settings.apiKey')}</label>
-          <input
-            className="form-input"
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder={t('settings.apiKey.placeholder')}
-            autoComplete="off"
-          />
-          <div className="form-hint">{t('settings.apiKey.hint')}</div>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">{t('settings.model')}</label>
-          <input
-            className="form-input"
-            value={model}
-            disabled
-            placeholder={t('settings.model.placeholder')}
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">{t('settings.baseURL')}</label>
-          <input
-            className="form-input"
-            value={baseURL}
-            onChange={(e) => setBaseURL(e.target.value)}
-            placeholder={t('settings.baseURL.placeholder')}
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">{t('settings.systemPrompt')}</label>
-          <textarea
-            className="form-input"
-            value={systemPrompt}
-            onChange={(e) => setSystemPrompt(e.target.value)}
-            placeholder={t('settings.systemPrompt.placeholder')}
-            rows={4}
-          />
-        </div>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className="btn btn-secondary"
-            onClick={handleTestConnection}
-            disabled={!apiKey || testing}
-          >
-            {testing ? t('settings.testConnection.testing') : t('settings.testConnection')}
-          </button>
-          <button className="btn btn-primary" onClick={handleSave} style={{ flex: 1 }}>
-            {t('settings.save')}
-          </button>
-        </div>
-      </div>
-
-    </div>
-  )
-}
-
 // ─── Toast ───
 let _showToast: ((msg: string, type: 'success' | 'error') => void) | null = null
 
@@ -369,13 +234,19 @@ function Toast() {
   const [type, setType] = useState<'success' | 'error'>('success')
   const timerRef = useRef<number | undefined>(undefined)
 
-  _showToast = useCallback((msg: string, t: 'success' | 'error') => {
+  const show = useCallback((msg: string, t: 'success' | 'error') => {
     setMessage(msg)
     setType(t)
     setVisible(true)
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = window.setTimeout(() => setVisible(false), 2500)
   }, [])
+
+  _showToast = show
+
+  useEffect(() => {
+    registerSettingsToast(show)
+  }, [show])
 
   return (
     <div className={`toast ${type} ${visible ? 'show' : ''}`}>{message}</div>

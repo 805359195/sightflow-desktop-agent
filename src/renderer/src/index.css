@@ -31,11 +31,57 @@
   --radius-full: 9999px;
 
   --font-sans: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* 设置页正文字体：与常见桌面端产品一致，中文更利落 */
+  --font-settings: 'Microsoft YaHei', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Inter',
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
 
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-smooth: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 设置侧栏：选中项（深色下浅字） */
+  --settings-sidebar-bg: rgba(0, 0, 0, 0.2);
+  --settings-nav-active-bg: rgba(43, 108, 255, 0.15);
+  --settings-nav-active-fg: #c5d4ff;
+  --settings-nav-active-border: rgba(43, 108, 255, 0.32);
+  --settings-nav-active-sub: rgba(180, 200, 255, 0.8);
+  --app-logo-filter: none;
+  --app-header-ctrl-bg: var(--bg-glass-heavy);
+  --app-header-ctrl-fg: var(--text-secondary);
+  --app-header-ctrl-border: var(--glass-border);
+  --app-header-ctrl-hover-bg: rgba(255, 255, 255, 0.1);
+  --app-header-ctrl-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* 浅色主题（用户设置中切换；默认不写 data-ui-mode 即深色 :root） */
+html[data-ui-mode="light"] {
+  --bg-primary: #ebedf2;
+  --bg-glass: rgba(255, 255, 255, 0.75);
+  --bg-glass-heavy: rgba(255, 255, 255, 0.92);
+  --bg-glass-input: rgba(0, 0, 0, 0.04);
+  --bg-frosted: rgba(255, 255, 255, 0.92);
+
+  --text-primary: #14151c;
+  --text-secondary: #4a4d5c;
+  --text-muted: #5c6070;
+
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-border-light: rgba(0, 0, 0, 0.14);
+
+  /* 侧栏：选中用深蓝字 + 浅蓝底，保证白底上可读 */
+  --settings-sidebar-bg: #e2e4ea;
+  --settings-nav-active-bg: #d6e4ff;
+  --settings-nav-active-fg: #0b3a8a;
+  --settings-nav-active-border: #6b9fff;
+  --settings-nav-active-sub: #3d4f70;
+  /* 顶栏 LOGO 多为浅色，压暗为深灰保证白底对比度 */
+  --app-logo-filter: brightness(0.22);
+  --app-header-ctrl-bg: #fff;
+  --app-header-ctrl-fg: #1a1d26;
+  --app-header-ctrl-border: rgba(0, 0, 0, 0.12);
+  --app-header-ctrl-hover-bg: #f0f2f5;
+  --app-header-ctrl-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 * {
@@ -61,6 +107,13 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+html[data-ui-mode="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+html[data-ui-mode="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
 }
 
 /* ─── App Shell ─── */
@@ -128,6 +181,30 @@ body {
   width: auto;
   opacity: 0.95;
   flex-shrink: 0;
+  filter: var(--app-logo-filter);
+}
+
+/* 顶栏内返回/齿轮：与主题同步，避免浅色时图标仍是浅灰 */
+.app-header .bottom-btn.bottom-btn-settings {
+  background: var(--app-header-ctrl-bg);
+  color: var(--app-header-ctrl-fg);
+  border-color: var(--app-header-ctrl-border);
+  box-shadow: none;
+}
+.app-header .bottom-btn.bottom-btn-settings:hover {
+  color: var(--text-primary);
+  background: var(--app-header-ctrl-hover-bg);
+  border-color: var(--app-header-ctrl-border);
+  box-shadow: var(--app-header-ctrl-shadow);
+  transform: none;
+}
+.app-header .bottom-btn.bottom-btn-settings svg {
+  color: var(--app-header-ctrl-fg);
+  stroke: var(--app-header-ctrl-fg);
+}
+.app-header .bottom-btn.bottom-btn-settings:hover svg {
+  color: var(--text-primary);
+  stroke: var(--text-primary);
 }
 
 .app-header .version {
@@ -141,7 +218,11 @@ body {
 /* ─── Content ─── */
 .app-content {
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
   position: relative;
   z-index: 1;
@@ -566,4 +647,12 @@ textarea.form-input {
 
 .slide-up {
   animation: slideUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 浅色下减弱背景光斑，避免与顶栏抢对比度 */
+html[data-ui-mode="light"] .app::before {
+  opacity: 0.45;
+}
+html[data-ui-mode="light"] .app::after {
+  opacity: 0.35;
 }

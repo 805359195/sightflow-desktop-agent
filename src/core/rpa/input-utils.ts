@@ -6,6 +6,7 @@ const IS_WINDOWS = process.platform === 'win32'
 const IS_MAC = process.platform === 'darwin'
 
 import { delay, randomDelayIn, getRobot } from './util'
+import { getSendShortcutFromStore, type SendShortcutMode } from '../user-prefs'
 
 // 原版 whatsapp-agent-demo 的贝塞尔曲线仿人滑动
 async function humanLikeMove(
@@ -119,10 +120,15 @@ const getWeChatInputPosition = (bounds: any, scaleFactor: number) => {
  * 业务原子 2：极简防检测回复模式
  * 1. 坐标计算：获取输入框焦点坐标
  * 2. 隐式鼠标点击目标输入框
- * 3. 推入剪贴板，Cmd+V注入
- * 4. Enter发送
+ * 3. 推入剪贴板，Ctrl/Cmd+V 注入
+ * 4. 发送：与设置中「发送快捷键」及电脑微信内发送方式一致（Enter 或 Ctrl/Cmd+Enter）
  */
-export async function sendReplyAction(appType: AppType, text: string): Promise<boolean> {
+export async function sendReplyAction(
+  appType: AppType,
+  text: string,
+  sendMode?: SendShortcutMode
+): Promise<boolean> {
+  const mode = sendMode ?? getSendShortcutFromStore()
   const windowInfo = await getWindowInfo(appType, false)
   if (!windowInfo || !windowInfo.bounds) {
     console.error('[sendReplyAction] 无法获取窗口信息')
@@ -174,22 +180,18 @@ export async function sendReplyAction(appType: AppType, text: string): Promise<b
     }
     
     await randomDelayIn(300, 500)
-    
-    // 4. Send Message (Using whatsapp-agent-demo best practices)
-    robot.keyTap('enter')
-    
-    if (IS_WINDOWS) {
-      robot.keyTap('enter', ['control'])
-      await randomDelayIn(40, 60)
-      robot.keyTap('backspace')
+
+    // 4. 发送：与用户在微信 PC 中设置一致 — Enter 发消息 或 Ctrl/Cmd+Enter 发消息
+    if (mode === 'enter') {
+      robot.keyTap('enter')
     } else {
-      robot.keyTap('enter', ['command'])
-      await randomDelayIn(20, 40)
-      robot.keyToggle('command', 'up')
-      await randomDelayIn(20, 40)
-      robot.keyTap('backspace')
+      if (IS_MAC) {
+        robot.keyTap('enter', ['command'])
+      } else {
+        robot.keyTap('enter', ['control'])
+      }
     }
-    
+
     return true
   } catch (err: any) {
     console.error('[sendReplyAction] Failed:', err)
