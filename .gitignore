@@ -8,6 +8,22 @@ out
 # Local documents and config
 .local/
 
+# Personal / machine-only (do not commit)
+.cursor/
+.idea/
+*.local.json
+*.local.ts
+*.local.js
+secrets/
+private/
+*credentials*
+*.pem
+*.p12
+*.key
+id_rsa
+id_ed25519
+*.keystore
+
 # Environment variables
 .env
 .env.*
